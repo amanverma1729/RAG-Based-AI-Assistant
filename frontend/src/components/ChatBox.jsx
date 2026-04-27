@@ -71,31 +71,64 @@ export default function ChatBox() {
     e.target.style.height = `${Math.min(e.target.scrollHeight, 200)}px`;
   };
 
+  const [isResearchMode, setIsResearchMode] = useState(false);
+  const [isComparing, setIsComparing] = useState(false);
+
   const handleSubmit = async (e) => {
     if (e) e.preventDefault();
-    if ((!input.trim() && !attachment) || isTyping || isRetrievingContext) return;
+    if ((!input.trim() && !attachment) || isTyping || isRetrievingContext || isComparing) return;
 
-    const contentPrefix = attachment ? `![Attached File: ${attachment.name}]\n\n` : '';
-    const queryText = contentPrefix + input.trim();
+    const queryText = input.trim();
     const userMsg = { id: Date.now(), role: 'user', content: queryText };
     setMessages(prev => [...prev, userMsg]);
     setInput('');
     removeAttachment();
     if (textareaRef.current) textareaRef.current.style.height = 'auto';
     
+    // --- RESEARCH MODE (SIDE-BY-SIDE) ---
+    if (isResearchMode) {
+      setIsComparing(true);
+      try {
+        const response = await fetch('http://localhost:8000/api/v1/chat/compare', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            query: queryText,
+            owner_id: "123e4567-e89b-12d3-a456-426614174000"
+          })
+        });
+        const data = await response.json();
+        
+        setMessages(prev => [...prev, {
+          id: Date.now() + 5,
+          role: 'assistant',
+          isComparison: true,
+          content: `### 🧪 Research Comparison\n\n**RAG Impact:** ${data.comparison_metrics.rag_benefit}\n**Knowledge Delta:** ${data.comparison_metrics.grounding_delta}\n\n---\n\n#### [Variant A: With RAG]\n${data.rag_answer}\n\n#### [Variant B: Baseline (No-RAG)]\n${data.baseline_answer}`,
+          sources: data.sources.map((id, i) => ({ title: `Context Chunk ${i+1}`, snippet: `ID: ${id}` })),
+          model: 'GPT-4o (Research)'
+        }]);
+      } catch (err) {
+        console.error("Comparison Error:", err);
+      } finally {
+        setIsComparing(false);
+      }
+      return;
+    }
+
+    // --- STANDARD MULTIMODAL STREAMING ---
     setIsRetrievingContext(true);
     
     try {
-      const response = await fetch('http://localhost:8000/chat/stream', {
+      const response = await fetch('http://localhost:8000/api/v1/chat/stream', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           query: queryText,
-          owner_id: "123e4567-e89b-12d3-a456-426614174000" // Hardcoded valid UUID for anonymous dev mode
+          owner_id: "123e4567-e89b-12d3-a456-426614174000"
         })
       });
 
-      if (!response.ok) throw new Error("Network response was not ok, is the backend running?");
+      if (!response.ok) throw new Error("Backend unreachable");
       
       setIsRetrievingContext(false);
       setIsTyping(true);
@@ -104,7 +137,7 @@ export default function ChatBox() {
       setMessages(prev => [...prev, { 
         id: assistantId, 
         role: 'assistant', 
-        content: '<span class="streaming-cursor"></span>', 
+        content: '', 
         sources: [],
         model: 'GPT-4o'
       }]);
@@ -132,7 +165,6 @@ export default function ChatBox() {
           try {
             const parsed = JSON.parse(dataStr);
             if (parsed.type === 'sources') {
-              // Convert raw db IDs to frontend card format
               sourcesList = parsed.data.map((id, index) => ({
                 title: `pgvector chunk [${index + 1}]`,
                 snippet: `Semantic context retrieved successfully under ID: ${id}`
@@ -141,25 +173,19 @@ export default function ChatBox() {
             } else if (parsed.type === 'token') {
               fullContent += parsed.data;
               setMessages(prev => prev.map(m => m.id === assistantId ? {...m, content: fullContent + '<span class="streaming-cursor"></span>'} : m));
-            } else if (parsed.type === 'error') {
-              fullContent += `\n\n**Error:** ${parsed.data}`;
-              setMessages(prev => prev.map(m => m.id === assistantId ? {...m, content: fullContent} : m));
+            } else if (parsed.type === 'image') {
+              setMessages(prev => prev.map(m => m.id === assistantId ? {...m, imageUrl: parsed.data, content: 'Research Visualization Generated:'} : m));
+              setIsTyping(false);
+            } else if (parsed.type === 'status') {
+              setMessages(prev => prev.map(m => m.id === assistantId ? {...m, content: `_${parsed.data}_`} : m));
             }
-          } catch (e) {
-            // Ignore incomplete fragments
-          }
+          } catch (e) {}
         }
       }
     } catch (error) {
-      console.error("Chat Error:", error);
       setIsRetrievingContext(false);
       setIsTyping(false);
-      setMessages(prev => [...prev, { 
-        id: Date.now() + 2, 
-        role: 'assistant', 
-        content: '**Connection Refused.** Cannot reach the backend. Please start the backend using `uvicorn app.main:app --reload` in your terminal.', 
-        model: 'System'
-      }]);
+      setMessages(prev => [...prev, { id: Date.now()+2, role: 'assistant', content: '**Error:** Check backend connectivity.', model: 'System' }]);
     }
   };
 
@@ -204,12 +230,13 @@ export default function ChatBox() {
                 content={msg.content} 
                 sources={msg.sources} 
                 model={msg.model} 
-                isRetrievingContext={isRetrievingContext && index === messages.length - 1 && msg.role === 'user' ? true : false}
+                imageUrl={msg.imageUrl}
+                isComparison={msg.isComparison}
+                isRetrievingContext={(isRetrievingContext || isComparing) && index === messages.length - 1 && msg.role === 'user' ? true : false}
               />
             ))}
             
-            {/* Context Skeleton */}
-            {isRetrievingContext && (
+            {(isRetrievingContext || isComparing) && (
                <Message 
                  key="skeleton-loading" 
                  role="assistant" 
@@ -223,13 +250,30 @@ export default function ChatBox() {
       </div>
 
       <div className="absolute bottom-0 left-0 w-full bg-gradient-to-t from-surface-base via-surface-base to-transparent px-4 pb-8 pt-12 flex justify-center pointer-events-none z-20">
-        <div className="w-full max-w-3xl relative pointer-events-auto">
+        <div className="w-full max-w-3xl relative pointer-events-auto flex flex-col items-center">
+          
+          {/* Research Mode Toggle */}
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex items-center gap-2 mb-4 bg-surface-sidebar border border-border-light px-3 py-1.5 rounded-full shadow-lg"
+          >
+            <div className={`w-2 h-2 rounded-full ${isResearchMode ? 'bg-accent-iris animate-pulse' : 'bg-text-tertiary'}`}></div>
+            <span className="text-[11px] font-bold uppercase tracking-wider text-text-secondary">Research Mode</span>
+            <button 
+              onClick={() => setIsResearchMode(!isResearchMode)}
+              className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${isResearchMode ? 'bg-accent-iris' : 'bg-surface-hover'}`}
+            >
+              <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${isResearchMode ? 'translate-x-4' : 'translate-x-1'}`} />
+            </button>
+          </motion.div>
+
           <motion.form 
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ type: 'spring', stiffness: 300, damping: 25 }}
             onSubmit={handleSubmit} 
-            className="relative flex flex-col gap-2 bg-surface-sidebar border border-border-light shadow-2xl rounded-2xl p-3 ring-1 ring-inset ring-transparent focus-within:ring-accent-iris/40 focus-within:border-accent-iris/40 transition-all drop-shadow-2xl"
+            className="relative flex flex-col gap-2 bg-surface-sidebar border border-border-light shadow-2xl rounded-2xl p-3 w-full ring-1 ring-inset ring-transparent focus-within:ring-accent-iris/40 focus-within:border-accent-iris/40 transition-all drop-shadow-2xl"
           >
             {/* Attachment Preview rendering */}
             {attachment && (
@@ -270,7 +314,7 @@ export default function ChatBox() {
               ref={textareaRef}
               value={input}
               onChange={handleInput}
-              placeholder="Ask anything or upload a document..."
+              placeholder={isResearchMode ? "Run comparative research query..." : "Ask anything or upload a document..."}
               className="w-full bg-transparent border-0 px-2 py-2.5 text-[15px] focus:outline-none focus:ring-0 text-text-primary resize-none placeholder-text-tertiary leading-relaxed max-h-[250px]"
               rows="1"
               onKeyDown={(e) => {
@@ -281,21 +325,21 @@ export default function ChatBox() {
               }}
             />
             <button 
-              type={(isTyping || isRetrievingContext) ? "button" : "submit"} 
+              type={(isTyping || isRetrievingContext || isComparing) ? "button" : "submit"} 
               className={`p-2.5 mb-0.5 shrink-0 rounded-xl flex items-center justify-center transition-all duration-200 shadow-md ${
-                (isTyping || isRetrievingContext)
+                (isTyping || isRetrievingContext || isComparing)
                 ? "bg-surface-base text-text-primary border border-border-light hover:bg-surface-hover animate-pulse" 
                 : (input.trim() || attachment) 
                   ? "bg-accent-iris text-white hover:bg-indigo-600 border border-transparent" 
                   : "bg-surface-base text-text-tertiary border border-border-light cursor-not-allowed"
               }`}
             >
-              {(isTyping || isRetrievingContext) ? <Square fill="currentColor" size={16} /> : <ArrowUp size={18} strokeWidth={2.5} />}
+              {(isTyping || isRetrievingContext || isComparing) ? <Square fill="currentColor" size={16} /> : <ArrowUp size={18} strokeWidth={2.5} />}
             </button>
             </div>
           </motion.form>
           <div className="text-center mt-3 text-[12px] text-text-tertiary">
-            AI generated content can be inaccurate. Always verify source citations.
+            Multimodal Research Engine • Optimized for {isResearchMode ? 'Accuracy' : 'Creativity'}
           </div>
         </div>
       </div>

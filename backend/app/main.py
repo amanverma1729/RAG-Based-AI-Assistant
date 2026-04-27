@@ -17,7 +17,12 @@ try:
 except Exception as e:
     logger.warning(f"Could not create vector extension (ensure pgvector is installed in Postgres): {e}")
 
-Base.metadata.create_all(bind=engine)
+try:
+    Base.metadata.create_all(bind=engine)
+except Exception as e:
+    logger.error(f"Database connection failed: {e}")
+    logger.warning("The application is running without a database connection. Some features will be unavailable.")
+
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -32,13 +37,10 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.get("/health")
-def health_check():
-    return {"status": "healthy", "service": settings.PROJECT_NAME}
+from app.api import chat, image, ingest, eval, health
 
-from app.api import routes_chat, routes_images, routes_ingest, routes_eval
-
-app.include_router(routes_chat.router, prefix=f"{settings.API_V1_STR}/chat", tags=["chat"])
-app.include_router(routes_images.router, prefix=f"{settings.API_V1_STR}/images", tags=["images"])
-app.include_router(routes_ingest.router, prefix=f"{settings.API_V1_STR}/ingest", tags=["ingestion"])
-app.include_router(routes_eval.router, prefix=f"{settings.API_V1_STR}/eval", tags=["evaluation"])
+app.include_router(health.router, prefix="/health", tags=["health"])
+app.include_router(chat.router, prefix=f"{settings.API_V1_STR}/chat", tags=["chat"])
+app.include_router(image.router, prefix=f"{settings.API_V1_STR}/images", tags=["images"])
+app.include_router(ingest.router, prefix=f"{settings.API_V1_STR}/ingest", tags=["ingestion"])
+app.include_router(eval.router, prefix=f"{settings.API_V1_STR}/eval", tags=["evaluation"])

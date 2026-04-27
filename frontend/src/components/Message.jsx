@@ -1,10 +1,10 @@
 import React from 'react';
 import ReactMarkdown from 'react-markdown';
-import { Sparkles, Copy, ThumbsUp, ThumbsDown, Database, User } from 'lucide-react';
+import { Sparkles, Copy, ThumbsUp, ThumbsDown, Database, User, Image as ImageIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import SourcePanel from './SourcePanel';
 
-export default function Message({ role, content, sources, model, isRetrievingContext }) {
+export default function Message({ role, content, sources, model, isRetrievingContext, imageUrl, isComparison }) {
   const isUser = role === 'user';
   
   return (
@@ -12,11 +12,11 @@ export default function Message({ role, content, sources, model, isRetrievingCon
       initial={{ opacity: 0, y: 15, scale: 0.98 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ type: 'spring', stiffness: 260, damping: 20 }}
-      className={`flex gap-4 group w-full ${isUser ? 'justify-end' : ''}`}
+      className={`flex gap-4 group w-full ${isUser ? 'justify-end' : ''} ${isComparison ? 'bg-surface-sidebar/30 p-6 rounded-3xl border border-border-light/50' : ''}`}
     >
       {/* AI Avatar */}
       {!isUser && (
-        <div className="w-9 h-9 shrink-0 rounded-xl flex items-center justify-center bg-surface-sidebar border border-border-light shadow-sm text-accent-iris mt-1 group-hover:bg-surface-hover/50 transition-colors">
+        <div className={`w-9 h-9 shrink-0 rounded-xl flex items-center justify-center bg-surface-sidebar border border-border-light shadow-sm text-accent-iris mt-1 group-hover:bg-surface-hover/50 transition-colors ${isComparison ? 'bg-accent-iris text-white' : ''}`}>
           <Sparkles size={18} />
         </div>
       )}
@@ -26,7 +26,7 @@ export default function Message({ role, content, sources, model, isRetrievingCon
         {/* Model Badge */}
         {!isUser && model && !isRetrievingContext && (
           <div className="inline-flex items-center gap-1.5 mb-2.5 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-widest text-text-tertiary">
-            {model}
+            {model} {isComparison && <span className="text-accent-iris ml-2">• Research Mode</span>}
           </div>
         )}
 
@@ -40,12 +40,29 @@ export default function Message({ role, content, sources, model, isRetrievingCon
               className="flex items-center gap-2 text-xs text-text-secondary bg-surface-sidebar shadow-md px-4 py-3 rounded-xl border border-border-light mb-3"
             >
               <Database size={14} className="animate-pulse text-accent-iris" />
-              <span className="font-medium">Searching knowledge base...</span>
+              <span className="font-medium">Synthesizing knowledge from vector index...</span>
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* Content Bubble/Block */}
+        {/* IMAGE CONTENT (Multimodal) */}
+        {imageUrl && (
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="relative mt-2 mb-4 rounded-2xl overflow-hidden border border-border-light shadow-2xl group/img"
+          >
+            <img src={imageUrl} alt="AI Generated" className="w-full max-w-lg object-cover aspect-square" />
+            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center">
+               <button className="bg-white/20 backdrop-blur-md text-white px-4 py-2 rounded-xl flex items-center gap-2 border border-white/30 hover:bg-white/30 transition-all font-medium">
+                 <ImageIcon size={16} />
+                 <span>Download HD Research Asset</span>
+               </button>
+            </div>
+          </motion.div>
+        )}
+
+        {/* TEXT CONTENT */}
         {content && (
           <div className={`prose prose-invert prose-p:leading-relaxed prose-pre:bg-surface-base prose-pre:border prose-pre:border-border-light max-w-none text-[15px] ${
             isUser 
@@ -62,7 +79,7 @@ export default function Message({ role, content, sources, model, isRetrievingCon
         )}
 
         {/* Action Row */}
-        {!isUser && content && !isRetrievingContext && (
+        {!isUser && (content || imageUrl) && !isRetrievingContext && (
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}

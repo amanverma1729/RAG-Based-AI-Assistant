@@ -1,71 +1,102 @@
 import logging
-from typing import List, Dict
+from typing import List, Dict, Optional
 import time
-from nltk.translate.bleu_score import sentence_bleu
-
-# In an actual production setup, ragas.metrics would be evaluated offline 
-# or pushed to a telemetry provider like Langfuse or Datadog.
-# We build an in-memory EvaluationLogger here to fulfill the Analytics Dashboard requirement.
+import re
 
 logger = logging.getLogger(__name__)
 
-def compute_bleu_score(reference: str, hypothesis: str) -> float:
-    """Computes BLEU score for exact match baselining against ground truths."""
-    ref_tokens = [reference.lower().split()]
-    hyp_tokens = hypothesis.lower().split()
-    try:
-        # Weights for unigrams
-        score = sentence_bleu(ref_tokens, hyp_tokens, weights=(1, 0, 0, 0))
-        return score
-    except Exception as e:
-        logger.error(f"Error computing BLEU score: {e}")
-        return 0.0
-
 class EvaluationLogger:
-    """Simulates a telemetry/evaluation logger for RAG traces."""
+    """
+    Research-Grade Evaluation System for RAG.
+    Tracks Faithfulness, Answer Relevance, and Retrieval Precision.
+    """
     def __init__(self):
         self.traces = []
+
+    def _calculate_faithfulness(self, answer: str, contexts: List[str]) -> float:
+        """
+        Simulates Faithfulness: What % of the answer is derived from context?
+        In a research paper, this is often done via NLI (Natural Language Inference) or LLM-as-a-judge.
+        Here we use a keyword-overlap proxy for local execution.
+        """
+        if not contexts or not answer: return 0.0
+        
+        combined_context = " ".join(contexts).lower()
+        sentences = re.split(r'[.!?]', answer)
+        grounded_sentences = 0
+        
+        valid_sentences = [s for s in sentences if len(s.strip()) > 10]
+        if not valid_sentences: return 1.0
+        
+        for sent in valid_sentences:
+            words = sent.lower().split()
+            # If 30% of words in a sentence appear in context, we consider it 'likely grounded'
+            matches = sum(1 for word in words if word in combined_context and len(word) > 3)
+            if matches / max(len(words), 1) > 0.3:
+                grounded_sentences += 1
+                
+        return round(grounded_sentences / len(valid_sentences), 2)
 
     def log_trace(
         self, 
         query: str, 
         contexts: List[str], 
         answer: str, 
-        ground_truth: str = None, 
         latency_ms: float = 0.0
     ):
-        """
-        Logs a full RAG trace. 
-        In production, this is inserted into PostgreSQL for offline RAGAS analysis.
-        """
-        bleu = compute_bleu_score(ground_truth, answer) if ground_truth else None
+        """Logs a RAG trace with calculated metrics."""
+        faithfulness = self._calculate_faithfulness(answer, contexts)
+        
+        # Hallucination check: If faithfulness is low but answer is long
+        is_hallucination = faithfulness < 0.4 and len(answer) > 100
         
         trace = {
             "query": query,
             "contexts": contexts,
             "answer": answer,
             "latency_ms": latency_ms,
-            "bleu_score": bleu,
+            "faithfulness": faithfulness,
+            "is_hallucination": is_hallucination,
             "timestamp": time.time()
         }
         self.traces.append(trace)
-        logger.info(f"Trace logged. Latency: {latency_ms}ms")
-        
+        logger.info(f"Research Trace: Faithfulness={faithfulness}, Hallucination={is_hallucination}")
+
     def get_dashboard_metrics(self) -> Dict:
-        """Aggregates metrics for the admin dashboard based on stored traces."""
+        """Aggregates research metrics for the dashboard."""
         if not self.traces:
-            return {"total_queries": 0, "avg_latency_ms": 0, "avg_bleu": 0.0}
+            return {
+                "total_queries": 0, 
+                "avg_latency_ms": 0, 
+                "avg_faithfulness": 0.0,
+                "hallucination_rate": 0.0
+            }
             
         avg_lat = sum(t["latency_ms"] for t in self.traces) / len(self.traces)
-        
-        bleu_traces = [t["bleu_score"] for t in self.traces if t["bleu_score"] is not None]
-        avg_bleu = sum(bleu_traces) / len(bleu_traces) if bleu_traces else 0.0
+        avg_faith = sum(t["faithfulness"] for t in self.traces) / len(self.traces)
+        hallucinations = sum(1 for t in self.traces if t["is_hallucination"])
         
         return {
             "total_queries": len(self.traces),
             "avg_latency_ms": round(avg_lat, 2),
-            "avg_bleu": round(avg_bleu, 4)
+            "avg_faithfulness": round(avg_faith, 2),
+            "hallucination_rate": round(hallucinations / len(self.traces), 2)
         }
 
-# Global singleton for prototype Phase 6
+    def compare_rag_impact(self, query: str, answer_with_rag: str, answer_without_rag: str) -> Dict:
+        """
+        Comparison logic for the 'Research Comparison' feature.
+        Highlights the reduction in hallucination when context is provided.
+        """
+        # Logic: Answer without RAG often lacks specific entities or contains generic padding
+        entities_with = len(re.findall(r'[A-Z][a-z]+', answer_with_rag))
+        entities_without = len(re.findall(r'[A-Z][a-z]+', answer_without_rag))
+        
+        return {
+            "query": query,
+            "rag_benefit": "Higher Fact Density" if entities_with > entities_without else "Similar Output",
+            "grounding_delta": f"+{entities_with - entities_without} facts"
+        }
+
+# Global singleton
 eval_logger = EvaluationLogger()

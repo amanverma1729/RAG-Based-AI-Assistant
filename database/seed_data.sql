@@ -1,0 +1,3 @@
+-- Example seed data
+-- Note: UUIDs should be generated or provided
+-- INSERT INTO documents (title, owner_id) VALUES ('Getting Started', '00000000-0000-0000-0000-000000000000');

@@ -1,14 +1,17 @@
 import logging
 import json
 import uuid
+import time
 from typing import AsyncGenerator
 from openai import AsyncOpenAI
 import litellm
-import time
+from sqlalchemy.orm import Session
+
 from app.core.config import settings
 from app.services.retrieval import search_documents
 from app.services.evaluation import eval_logger
-from sqlalchemy.orm import Session
+from app.services.intent import classify_intent
+from app.services.image_gen import generate_image
 
 logger = logging.getLogger(__name__)
 
@@ -22,32 +25,54 @@ async def generate_rag_response_stream(
     use_local_llm: bool = False
 ) -> AsyncGenerator[str, None]:
     """
-    1. Retrieves relevant documents.
-    2. Constructs augmented prompt.
-    3. Streams response from LLM (OpenAI or Local via LiteLLM).
-    4. Yields Server-Sent Events (SSE).
+    Multimodal Orchestrator:
+    1. Detects Intent (Text vs Image).
+    2. Routes to appropriate generator.
+    3. Handles RAG for text or DALL-E for images.
     """
+    
+    # --- PHASE 1: INTENT CLASSIFICATION ---
+    intent = await classify_intent(query)
+    
+    if intent == "IMAGE":
+        yield f"data: {json.dumps({'type': 'status', 'data': 'Generating your image...'})}\n\n"
+        try:
+            image_url = await generate_image(query)
+            yield f"data: {json.dumps({'type': 'image', 'data': image_url})}\n\n"
+            yield "data: [DONE]\n\n"
+            return
+        except Exception as e:
+            logger.error(f"Image generation failed: {e}")
+            yield f"data: {json.dumps({'type': 'error', 'data': 'Failed to generate image. Please try again.'})}\n\n"
+            yield "data: [DONE]\n\n"
+            return
+
+    # --- PHASE 2: DOCUMENT RETRIEVAL (TEXT INTENT) ---
     if not use_local_llm and not openai_client:
         logger.warning("OPENAI_API_KEY not configured, falling back to local LLM.")
         use_local_llm = True
         
-    # 1. Retrieve top K chunks
     relevant_chunks = await search_documents(db, query, owner_id, top_k=5)
     
-    # 2. Context Assembly
+    # Context Assembly
     context_text = "\n\n---\n\n".join([
         f"Source ID: {chunk.id}\nContent: {chunk.content}" 
         for chunk in relevant_chunks
     ])
     
-    system_message = f"""You are a helpful, expert AI assistant.
-Answer the user's question based strictly on the provided context.
-If the answer is not contained in the context, say "I don't have enough information to answer that."
-When you use information from the context, please cite the Source ID using [Source: <ID>].
+    # Research-grade Grounded Prompt
+    system_message = f"""You are a senior Research Assistant for the Multimodal RAG Project.
+Your goal is to provide highly accurate, grounded answers based ONLY on the provided context.
 
-<context>
+GUIDELINES:
+1. Cite information using [Source: ID].
+2. If the context is insufficient, state: "The provided academic context does not contain sufficient data to answer the query."
+3. Maintain a formal, academic tone.
+4. If there are conflicting sources, mention both perspectives.
+
+<academic_context>
 {context_text}
-</context>
+</academic_context>
 """
 
     messages = [{"role": "system", "content": system_message}]
@@ -57,14 +82,13 @@ When you use information from the context, please cite the Source ID using [Sour
         
     messages.append({"role": "user", "content": query})
     
-    # 3. Stream Metadata First
+    # --- PHASE 3: RESPONSE STREAMING ---
     start_time = time.time()
     source_ids = [str(c.id) for c in relevant_chunks]
     yield f"data: {json.dumps({'type': 'sources', 'data': source_ids})}\n\n"
     
     full_answer = ""
     
-    # 4. Stream LLM Generation
     try:
         if use_local_llm:
             response = await litellm.acompletion(
@@ -82,7 +106,7 @@ When you use information from the context, please cite the Source ID using [Sour
             response = await openai_client.chat.completions.create(
                 model="gpt-4o",
                 messages=messages,
-                temperature=0.2,
+                temperature=0.1, # Lower temperature for research accuracy
                 stream=True
             )
             async for chunk in response:
@@ -97,6 +121,7 @@ When you use information from the context, please cite the Source ID using [Sour
         
     yield "data: [DONE]\n\n"
 
+    # --- PHASE 4: LOGGING & EVALUATION ---
     end_time = time.time()
     eval_logger.log_trace(
         query=query,
@@ -104,3 +129,26 @@ When you use information from the context, please cite the Source ID using [Sour
         answer=full_answer,
         latency_ms=round((end_time - start_time) * 1000, 2)
     )
+
+async def generate_baseline_response(query: str) -> str:
+    """
+    Generates a response WITHOUT any external context.
+    Used for 'Research Comparison' to show baseline model performance vs. RAG.
+    """
+    if not openai_client:
+        return "Baseline comparison requires an active OpenAI client."
+    
+    try:
+        response = await openai_client.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant. Answer the user's query from your internal knowledge only."},
+                {"role": "user", "content": query}
+            ],
+            temperature=0.7, # Higher temp for baseline to show variability
+            stream=False
+        )
+        return response.choices[0].message.content
+    except Exception as e:
+        logger.error(f"Error in baseline generation: {e}")
+        return f"Error: {e}"
