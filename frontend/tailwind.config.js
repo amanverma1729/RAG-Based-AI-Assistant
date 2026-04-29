@@ -7,17 +7,17 @@ export default {
   theme: {
     extend: {
       colors: {
-        'surface-base': '#0f172a',    
-        'surface-sidebar': '#1e293b', 
-        'surface-card': '#1e293b',    
-        'surface-hover': '#334155',
-        'border-light': '#334155',
-        'border-active': '#475569',
-        'text-primary': '#f8fafc',
-        'text-secondary': '#e2e8f0',
+        'surface-base': '#212121',    
+        'surface-sidebar': '#171717', 
+        'surface-card': '#2f2f2f',    
+        'surface-hover': '#3a3a3a',
+        'border-light': 'transparent',
+        'border-active': '#424242',
+        'text-primary': '#ececec',
+        'text-secondary': '#b4b4b4',
         'text-tertiary': '#94a3b8',
-        'accent-iris': '#6366f1',
-        'accent-emerald': '#10b981', 
+        'accent-emerald': '#10a37f', 
+        'accent-iris': '#10a37f', // Redirecting iris to emerald to remove blue/purple entirely
       },
       animation: {
         'fade-in': 'fadeIn 0.3s ease-out forwards',

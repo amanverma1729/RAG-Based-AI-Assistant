@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactMarkdown from 'react-markdown';
-import { Sparkles, Copy, ThumbsUp, ThumbsDown, Database, User, Image as ImageIcon } from 'lucide-react';
+import { Copy, ThumbsUp, ThumbsDown, Database, Image as ImageIcon } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import SourcePanel from './SourcePanel';
 
@@ -9,96 +9,84 @@ export default function Message({ role, content, sources, model, isRetrievingCon
   
   return (
     <motion.div 
-      initial={{ opacity: 0, y: 15, scale: 0.98 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
+      initial={{ opacity: 0, y: 15 }}
+      animate={{ opacity: 1, y: 0 }}
       transition={{ type: 'spring', stiffness: 260, damping: 20 }}
-      className={`flex gap-4 group w-full ${isUser ? 'justify-end' : ''} ${isComparison ? 'bg-surface-sidebar/30 p-6 rounded-3xl border border-border-light/50' : ''}`}
+      className={`flex w-full group ${isUser ? 'justify-end' : 'justify-start'}`}
     >
-      {/* AI Avatar */}
-      {!isUser && (
-        <div className={`w-9 h-9 shrink-0 rounded-xl flex items-center justify-center bg-surface-sidebar border border-border-light shadow-sm text-accent-iris mt-1 group-hover:bg-surface-hover/50 transition-colors ${isComparison ? 'bg-accent-iris text-white' : ''}`}>
-          <Sparkles size={18} />
-        </div>
-      )}
-      
-      <div className={`flex flex-col min-w-0 ${isUser ? 'max-w-[75%] items-end' : 'flex-1 max-w-[85%]'}`}>
+      <div className={`flex gap-4 w-full max-w-3xl ${isUser ? 'flex-row-reverse' : ''}`}>
         
-        {/* Model Badge */}
-        {!isUser && model && !isRetrievingContext && (
-          <div className="inline-flex items-center gap-1.5 mb-2.5 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-widest text-text-tertiary">
-            {model} {isComparison && <span className="text-accent-iris ml-2">• Research Mode</span>}
+        {/* Assistant Avatar */}
+        {!isUser && (
+          <div className="w-8 h-8 shrink-0 rounded-full flex items-center justify-center border border-border-active mt-1">
+             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-text-primary">
+                <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+             </svg>
           </div>
         )}
+        
+        <div className={`flex flex-col min-w-0 ${isUser ? 'max-w-[75%]' : 'flex-1'}`}>
+          
+          {/* Skeleton RAG Retrieving Pill */}
+          <AnimatePresence>
+            {isRetrievingContext && !isUser && (
+              <motion.div 
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0, marginBottom: 0 }}
+                className="flex items-center gap-2 text-xs text-text-secondary bg-surface-sidebar px-3 py-2 rounded-xl mb-3 w-max"
+              >
+                <Database size={14} className="animate-pulse text-accent-emerald" />
+                <span>Synthesizing knowledge...</span>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
-        {/* Skeleton RAG Retrieving Pill */}
-        <AnimatePresence>
-          {isRetrievingContext && !isUser && (
+          {/* IMAGE CONTENT (Multimodal) */}
+          {imageUrl && (
             <motion.div 
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0, marginBottom: 0 }}
-              className="flex items-center gap-2 text-xs text-text-secondary bg-surface-sidebar shadow-md px-4 py-3 rounded-xl border border-border-light mb-3"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="relative mt-2 mb-4 rounded-xl overflow-hidden group/img w-max"
             >
-              <Database size={14} className="animate-pulse text-accent-iris" />
-              <span className="font-medium">Synthesizing knowledge from vector index...</span>
+              <img src={imageUrl} alt="AI Generated" className="w-full max-w-sm object-cover aspect-square rounded-xl" />
             </motion.div>
           )}
-        </AnimatePresence>
 
-        {/* IMAGE CONTENT (Multimodal) */}
-        {imageUrl && (
-          <motion.div 
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="relative mt-2 mb-4 rounded-2xl overflow-hidden border border-border-light shadow-2xl group/img"
-          >
-            <img src={imageUrl} alt="AI Generated" className="w-full max-w-lg object-cover aspect-square" />
-            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/img:opacity-100 transition-opacity flex items-center justify-center">
-               <button className="bg-white/20 backdrop-blur-md text-white px-4 py-2 rounded-xl flex items-center gap-2 border border-white/30 hover:bg-white/30 transition-all font-medium">
-                 <ImageIcon size={16} />
-                 <span>Download HD Research Asset</span>
-               </button>
+          {/* TEXT CONTENT */}
+          {content && (
+            <div className={`prose prose-invert prose-p:leading-relaxed max-w-none text-[15px] ${
+              isUser 
+                ? 'bg-surface-card text-text-primary px-5 py-3 rounded-3xl' 
+                : 'text-text-primary py-1'
+            }`}>
+              <ReactMarkdown>{content}</ReactMarkdown>
             </div>
-          </motion.div>
-        )}
+          )}
 
-        {/* TEXT CONTENT */}
-        {content && (
-          <div className={`prose prose-invert prose-p:leading-relaxed prose-pre:bg-surface-base prose-pre:border prose-pre:border-border-light max-w-none text-[15px] ${
-            isUser 
-              ? 'bg-surface-sidebar text-text-primary px-6 py-4 rounded-3xl rounded-tr-md border border-border-light shadow-md' 
-              : 'text-text-primary'
-          }`}>
-            <ReactMarkdown>{content}</ReactMarkdown>
-          </div>
-        )}
+          {/* Sources Carousel */}
+          {!isUser && sources && sources.length > 0 && (
+            <div className="mt-3">
+              <SourcePanel sources={sources} />
+            </div>
+          )}
 
-        {/* Sources Carousel */}
-        {!isUser && sources && sources.length > 0 && (
-          <SourcePanel sources={sources} />
-        )}
-
-        {/* Action Row */}
-        {!isUser && (content || imageUrl) && !isRetrievingContext && (
-          <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.5 }} 
-            className="flex items-center gap-1 mt-4 opacity-0 group-hover:opacity-100 transition-opacity"
-          >
-            <button className="p-1.5 text-text-tertiary hover:text-text-primary hover:bg-surface-sidebar rounded-lg transition-colors border border-transparent hover:border-border-light"><Copy size={16} /></button>
-            <button className="p-1.5 text-text-tertiary hover:text-accent-emerald hover:bg-surface-sidebar rounded-lg transition-colors border border-transparent hover:border-border-light"><ThumbsUp size={16} /></button>
-            <button className="p-1.5 text-text-tertiary hover:text-red-400 hover:bg-surface-sidebar rounded-lg transition-colors border border-transparent hover:border-border-light"><ThumbsDown size={16} /></button>
-          </motion.div>
-        )}
-      </div>
-
-      {/* User Avatar */}
-      {isUser && (
-        <div className="w-9 h-9 shrink-0 rounded-xl flex items-center justify-center bg-gradient-to-tr from-accent-iris to-indigo-400 shadow-md text-white mt-1">
-          <User size={18} />
+          {/* Action Row */}
+          {!isUser && (content || imageUrl) && !isRetrievingContext && (
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.2 }} 
+              className="flex items-center gap-1 mt-2 opacity-0 group-hover:opacity-100 transition-opacity"
+            >
+              <button className="p-1.5 text-text-tertiary hover:text-text-primary hover:bg-surface-hover rounded-md transition-colors"><Copy size={14} /></button>
+              <button className="p-1.5 text-text-tertiary hover:text-text-primary hover:bg-surface-hover rounded-md transition-colors"><ThumbsUp size={14} /></button>
+              <button className="p-1.5 text-text-tertiary hover:text-text-primary hover:bg-surface-hover rounded-md transition-colors"><ThumbsDown size={14} /></button>
+            </motion.div>
+          )}
         </div>
-      )}
+      </div>
     </motion.div>
   );
 }
+

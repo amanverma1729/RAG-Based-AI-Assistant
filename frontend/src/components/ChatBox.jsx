@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Sparkles, Paperclip, ArrowUp, Square, Terminal, Search, Zap, X, FileText } from 'lucide-react';
+import { Paperclip, ArrowUp, Square, FileText, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Message from './Message';
 
@@ -33,7 +33,7 @@ const useIntelligentScroll = (isStreaming, messages) => {
 };
 
 export default function ChatBox() {
-  const [messages, setMessages] = useState([]); // Empty state by default
+  const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [attachment, setAttachment] = useState(null);
   const [isTyping, setIsTyping] = useState(false);
@@ -191,31 +191,33 @@ export default function ChatBox() {
 
   return (
     <>
-      <div className="flex-1 w-full flex flex-col h-full overflow-hidden absolute inset-0 pb-[160px]">
-        <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 md:px-8 pt-8 pb-12 space-y-10">
+      <div className="flex-1 w-full flex flex-col h-full overflow-hidden absolute inset-0 pb-[120px]">
+        <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 md:px-8 pt-10 pb-12 w-full max-w-3xl mx-auto space-y-6">
           
           {/* Empty State Presentation */}
           {messages.length === 0 && (
             <motion.div 
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="flex flex-col items-center justify-center h-full text-center max-w-2xl mx-auto pt-20"
+              className="flex flex-col items-center justify-center mt-10 md:mt-24 text-center"
             >
-              <div className="w-16 h-16 bg-surface-sidebar rounded-2xl flex items-center justify-center mb-6 shadow-lg border border-border-light drop-shadow-xl">
-                <Sparkles size={32} className="text-accent-iris" />
+              <div className="w-16 h-16 rounded-full flex items-center justify-center mb-6 border border-border-active">
+                 <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-text-primary">
+                    <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+                 </svg>
               </div>
-              <h1 className="text-3xl font-bold text-text-primary mb-3">How can I help you today?</h1>
-              <p className="text-text-tertiary mb-10 text-lg">I have access to your organization's internal knowledge base.</p>
+              <h1 className="text-2xl font-semibold text-text-primary mb-2">RAG Assistant</h1>
+              <p className="text-text-secondary text-md mb-8">Ask questions from your documents</p>
               
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 w-full">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full max-w-2xl">
                 {[
-                  { icon: <Terminal size={18}/>, text: "Explain the deployment pipeline" },
-                  { icon: <Search size={18}/>, text: "Search architecture documents" },
-                  { icon: <Zap size={18}/>, text: "Generate an image of a cloud network" }
+                  { text: "Explain the deployment pipeline" },
+                  { text: "Search architecture documents" },
+                  { text: "Generate an image of a cloud network" },
+                  { text: "Help me write a Python script" }
                 ].map((s, i) => (
-                  <button key={i} onClick={() => setInput(s.text)} className="flex flex-col items-start p-4 bg-surface-sidebar hover:bg-surface-hover/50 border border-border-light rounded-xl transition-all shadow-sm group">
-                    <div className="text-accent-iris bg-accent-iris/10 p-2 rounded-lg mb-3 group-hover:scale-110 transition-transform">{s.icon}</div>
-                    <span className="text-sm font-medium text-text-secondary text-left">{s.text}</span>
+                  <button key={i} onClick={() => setInput(s.text)} className="flex items-center p-3.5 bg-transparent hover:bg-surface-card border border-border-active rounded-xl transition-all shadow-sm text-sm text-text-secondary hover:text-text-primary">
+                    {s.text}
                   </button>
                 ))}
               </div>
@@ -249,36 +251,20 @@ export default function ChatBox() {
         </div>
       </div>
 
-      <div className="absolute bottom-0 left-0 w-full bg-gradient-to-t from-surface-base via-surface-base to-transparent px-4 pb-8 pt-12 flex justify-center pointer-events-none z-20">
-        <div className="w-full max-w-3xl relative pointer-events-auto flex flex-col items-center">
+      <div className="absolute bottom-0 left-0 w-full px-4 pb-6 flex justify-center pointer-events-none z-20">
+        <div className="w-full max-w-3xl relative pointer-events-auto flex flex-col">
           
-          {/* Research Mode Toggle */}
-          <motion.div 
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex items-center gap-2 mb-4 bg-surface-sidebar border border-border-light px-3 py-1.5 rounded-full shadow-lg"
-          >
-            <div className={`w-2 h-2 rounded-full ${isResearchMode ? 'bg-accent-iris animate-pulse' : 'bg-text-tertiary'}`}></div>
-            <span className="text-[11px] font-bold uppercase tracking-wider text-text-secondary">Research Mode</span>
-            <button 
-              onClick={() => setIsResearchMode(!isResearchMode)}
-              className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${isResearchMode ? 'bg-accent-iris' : 'bg-surface-hover'}`}
-            >
-              <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${isResearchMode ? 'translate-x-4' : 'translate-x-1'}`} />
-            </button>
-          </motion.div>
-
           <motion.form 
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ type: 'spring', stiffness: 300, damping: 25 }}
             onSubmit={handleSubmit} 
-            className="relative flex flex-col gap-2 bg-surface-sidebar border border-border-light shadow-2xl rounded-2xl p-3 w-full ring-1 ring-inset ring-transparent focus-within:ring-accent-iris/40 focus-within:border-accent-iris/40 transition-all drop-shadow-2xl"
+            className="relative flex flex-col gap-2 bg-surface-card rounded-[24px] p-2 w-full focus-within:ring-0 focus-within:border-transparent transition-all shadow-[0_0_15px_rgba(0,0,0,0.1)]"
           >
             {/* Attachment Preview rendering */}
             {attachment && (
-              <div className="relative mx-1 mt-1 flex items-center gap-3 bg-surface-base border border-border-light rounded-xl p-2.5 w-max max-w-full sm:max-w-[300px] group animate-fade-in shadow-sm">
-                <div className="w-8 h-8 rounded-lg bg-accent-iris/10 flex items-center justify-center text-accent-iris shrink-0">
+              <div className="relative mx-3 mt-2 flex items-center gap-3 bg-surface-base border border-border-active rounded-xl p-2 w-max max-w-full sm:max-w-[300px] group shadow-sm">
+                <div className="w-8 h-8 rounded-lg bg-surface-sidebar flex items-center justify-center text-text-primary shrink-0">
                   <FileText size={16} />
                 </div>
                 <div className="flex flex-col min-w-0 pr-6">
@@ -288,14 +274,14 @@ export default function ChatBox() {
                 <button 
                   type="button" 
                   onClick={removeAttachment}
-                  className="absolute p-1 top-2 right-2 text-text-tertiary hover:text-red-400 bg-surface-hover/80 rounded-md transition-colors shadow-sm"
+                  className="absolute p-1 top-2 right-2 text-text-tertiary hover:text-text-primary bg-surface-base rounded-md transition-colors"
                 >
-                  <X size={12} strokeWidth={3} />
+                  <X size={14} strokeWidth={2.5} />
                 </button>
               </div>
             )}
             
-            <div className="relative flex items-end gap-3 w-full">
+            <div className="relative flex items-end gap-2 w-full px-2">
               <input 
                 type="file" 
                 ref={fileInputRef} 
@@ -306,40 +292,41 @@ export default function ChatBox() {
               <button 
                 type="button" 
                 onClick={() => fileInputRef.current?.click()}
-                className="p-2.5 mb-0.5 text-text-tertiary hover:text-text-primary hover:bg-surface-hover/80 rounded-xl transition-colors shrink-0 bg-surface-base border border-border-light shadow-sm"
+                className="p-2 mb-1.5 text-text-secondary hover:text-text-primary rounded-xl transition-colors shrink-0 bg-transparent"
               >
-                <Paperclip size={18} />
+                <Paperclip size={20} strokeWidth={2} />
               </button>
               <textarea
-              ref={textareaRef}
-              value={input}
-              onChange={handleInput}
-              placeholder={isResearchMode ? "Run comparative research query..." : "Ask anything or upload a document..."}
-              className="w-full bg-transparent border-0 px-2 py-2.5 text-[15px] focus:outline-none focus:ring-0 text-text-primary resize-none placeholder-text-tertiary leading-relaxed max-h-[250px]"
-              rows="1"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  handleSubmit(e);
-                }
-              }}
-            />
-            <button 
-              type={(isTyping || isRetrievingContext || isComparing) ? "button" : "submit"} 
-              className={`p-2.5 mb-0.5 shrink-0 rounded-xl flex items-center justify-center transition-all duration-200 shadow-md ${
-                (isTyping || isRetrievingContext || isComparing)
-                ? "bg-surface-base text-text-primary border border-border-light hover:bg-surface-hover animate-pulse" 
-                : (input.trim() || attachment) 
-                  ? "bg-accent-iris text-white hover:bg-indigo-600 border border-transparent" 
-                  : "bg-surface-base text-text-tertiary border border-border-light cursor-not-allowed"
-              }`}
-            >
-              {(isTyping || isRetrievingContext || isComparing) ? <Square fill="currentColor" size={16} /> : <ArrowUp size={18} strokeWidth={2.5} />}
-            </button>
+                ref={textareaRef}
+                value={input}
+                onChange={handleInput}
+                placeholder="Message RAG Assistant..."
+                className="w-full bg-transparent border-0 py-3.5 text-[15px] focus:outline-none focus:ring-0 text-text-primary resize-none placeholder-text-secondary leading-relaxed max-h-[200px]"
+                rows="1"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSubmit(e);
+                  }
+                }}
+              />
+              <button 
+                type={(isTyping || isRetrievingContext || isComparing) ? "button" : "submit"} 
+                className={`p-2 mb-1.5 shrink-0 rounded-xl flex items-center justify-center transition-all duration-200 ${
+                  (isTyping || isRetrievingContext || isComparing)
+                  ? "bg-transparent text-text-primary" 
+                  : (input.trim() || attachment) 
+                    ? "bg-white text-black hover:bg-gray-200" 
+                    : "bg-surface-hover text-text-secondary cursor-not-allowed"
+                }`}
+                disabled={!(input.trim() || attachment) && !(isTyping || isRetrievingContext || isComparing)}
+              >
+                {(isTyping || isRetrievingContext || isComparing) ? <Square fill="currentColor" size={16} /> : <ArrowUp size={18} strokeWidth={2.5} />}
+              </button>
             </div>
           </motion.form>
-          <div className="text-center mt-3 text-[12px] text-text-tertiary">
-            Multimodal Research Engine • Optimized for {isResearchMode ? 'Accuracy' : 'Creativity'}
+          <div className="text-center mt-2 text-[11px] text-text-secondary">
+            RAG Assistant can make mistakes. Consider verifying important information.
           </div>
         </div>
       </div>

@@ -5,25 +5,31 @@
 body {
   margin: 0;
   font-family: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
-  background-color: #0f172a;
-  color: #e2e8f0;
+  background-color: #212121;
+  color: #ececec;
   overscroll-behavior-y: none;
 }
 
 /* Beautiful modern scrollbars */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
+  background-color: transparent;
 }
 ::-webkit-scrollbar-track {
-  background: transparent;
+  background-color: transparent;
 }
 ::-webkit-scrollbar-thumb {
-  background: #334155;
-  border-radius: 4px;
+  background-color: transparent; /* Hidden by default */
+  border-radius: 9999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+*:hover::-webkit-scrollbar-thumb {
+  background-color: #3a3a3a;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #475569;
+  background-color: #555555;
 }
 
 /* Streaming blink cursor */
@@ -37,7 +43,7 @@ body {
   display: inline-block;
   width: 8px;
   height: 16px;
-  background-color: #e2e8f0;
+  background-color: #ececec;
   margin-left: 2px;
   border-radius: 1px;
   animation: blink 1s step-end infinite;
@@ -46,21 +52,21 @@ body {
 
 /* Custom Markdown styling */
 .prose pre {
-  background-color: #0f172a !important;
-  border: 1px solid #334155;
-  border-radius: 0.75rem;
+  background-color: #000000 !important;
+  border: none;
+  border-radius: 0.5rem;
   padding: 1rem;
   overflow-x: auto;
 }
 .prose code {
-  color: #6366f1;
-  background-color: #1e293b;
+  color: #ececec;
+  background-color: #2f2f2f;
   padding: 0.15rem 0.3rem;
   border-radius: 0.25rem;
   font-size: 0.85em;
 }
 .prose pre code {
-  color: #e2e8f0;
+  color: #ececec;
   background-color: transparent;
   padding: 0;
 }
