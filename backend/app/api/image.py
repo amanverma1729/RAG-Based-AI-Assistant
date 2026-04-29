@@ -1,17 +1,16 @@
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
-from app.services.image_gen import generate_image
+from app.models.request import ImageRequest
+from app.models.response import ImageResponse
+from app.services.image_service import ImageGenerationService
 
 router = APIRouter()
+image_service = ImageGenerationService()
 
-class ImageRequest(BaseModel):
-    prompt: str
-
-@router.post("/generate")
+@router.post("/", response_model=ImageResponse)
 async def create_image(payload: ImageRequest):
-    """Generates an image from a prompt via DALL-E 3."""
+    """Generates an image from a prompt."""
     try:
-        image_url = await generate_image(payload.prompt)
-        return {"url": image_url, "prompt": payload.prompt}
+        image_url = await image_service.generate_image(payload.prompt)
+        return ImageResponse(image_url=image_url)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

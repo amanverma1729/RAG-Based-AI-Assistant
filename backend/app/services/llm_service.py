@@ -11,7 +11,7 @@ from app.core.config import settings
 from app.services.retrieval import search_documents
 from app.services.evaluation import eval_logger
 from app.services.intent import classify_intent
-from app.services.image_gen import generate_image
+from app.services.image_service import ImageGenerationService
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +37,8 @@ async def generate_rag_response_stream(
     if intent == "IMAGE":
         yield f"data: {json.dumps({'type': 'status', 'data': 'Generating your image...'})}\n\n"
         try:
-            image_url = await generate_image(query)
+            image_gen = ImageGenerationService()
+            image_url = await image_gen.generate_image(query)
             yield f"data: {json.dumps({'type': 'image', 'data': image_url})}\n\n"
             yield "data: [DONE]\n\n"
             return

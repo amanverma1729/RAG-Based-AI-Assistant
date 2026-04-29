@@ -3,7 +3,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from app.core.config import settings
-from app.db.session import engine
+from app.db.postgres import engine
 from app.db.models import Base
 
 logging.basicConfig(level=logging.INFO)

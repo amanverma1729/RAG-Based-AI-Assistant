@@ -1,20 +1,50 @@
-from app.services.retrieval import RetrievalService
-from app.services.llm_service import LLMOrchestrator
-from app.services.image_service import ImageGenerationService
+import logging
+from sqlalchemy.orm import Session
+from app.services.llm_service import generate_rag_response_stream
+import uuid
+import json
+
+logger = logging.getLogger(__name__)
 
 class RAGService:
-    def __init__(self):
-        self.retrieval = RetrievalService()
-        self.llm = LLMOrchestrator()
-        self.image_gen = ImageGenerationService()
-
-    async def answer_query(self, query: str):
-        # 1. Retrieve context
-        context = await self.retrieval.get_context(query)
+    async def answer_query(self, query: str, db: Session = None, owner_id: uuid.UUID = None):
+        """
+        Orchestrates the RAG flow and returns a consolidated response.
+        """
+        full_answer = ""
+        sources = []
         
-        # 2. Generate response using LLM
-        response = await self.llm.generate_response(query, context)
-        
-        return response
+        if not owner_id:
+            owner_id = uuid.UUID("00000000-0000-0000-0000-000000000000")
+            
+        if not db:
+            from app.db.postgres import SessionLocal
+            db = SessionLocal()
+            try:
+                async for chunk in generate_rag_response_stream(db, query, owner_id):
+                    if chunk.startswith("data: "):
+                        try:
+                            data = json.loads(chunk[6:])
+                            if data.get("type") == "token":
+                                full_answer += data["data"]
+                            elif data.get("type") == "sources":
+                                sources = data["data"]
+                        except:
+                            pass
+            finally:
+                db.close()
+        else:
+            async for chunk in generate_rag_response_stream(db, query, owner_id):
+                if chunk.startswith("data: "):
+                    try:
+                        data = json.loads(chunk[6:])
+                        if data.get("type") == "token":
+                            full_answer += data["data"]
+                        elif data.get("type") == "sources":
+                            sources = data["data"]
+                    except:
+                        pass
+                        
+        return full_answer, sources
 
 rag_service = RAGService()

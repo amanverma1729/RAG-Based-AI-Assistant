@@ -4,7 +4,7 @@ import re
 from sqlalchemy.orm import Session
 from sqlalchemy import select, or_
 from app.db.models import DocumentChunk, Document
-from app.services.embedding import generate_embeddings
+from app.services.embedding_service import generate_embeddings
 
 logger = logging.getLogger(__name__)
 
