@@ -1,22 +1,50 @@
 # 📄 PDF Intelligence Pro — 100% OFFLINE
 
 > Koi API Key nahi • Koi Internet nahi • Tera data tera machine pe
+> *Now featuring a professional, modular architecture and a premium Dark UI.*
 
 ---
 
 ## 🚀 Quick Start
 
-### Step 1 — Install karo
+### Step 1 — Install Dependencies
 ```bash
 pip install -r requirements_offline.txt
 ```
 
-### Step 2 — Run karo
+### Step 2 — Run the App
 ```bash
-python pdf_offline_qa.py
+python -m src.main
 ```
 
 **Pehli baar 80MB AI model download hoga — phir hamesha offline!**
+
+---
+
+## 🏗️ Project Architecture
+
+The application has been modularized for scalability and easy maintenance:
+
+```text
+📁 / (Project Root)
+├── 📁 src/                     # Source code root
+│   ├── 📄 main.py              # Application entry point
+│   ├── 📁 config/              # Configuration and styling
+│   │   ├── 📄 settings.py      # App constants (CHUNK_SIZE, MAX_PDFS, etc.)
+│   │   └── 📄 theme.py         # Premium color palettes and UI styling tokens
+│   ├── 📁 engine/              # Backend logic (AI & Data)
+│   │   ├── 📄 ai_engine.py     # Main AI orchestrator
+│   │   ├── 📄 pdf_parser.py    # PDF text extraction and chunking
+│   │   └── 📄 ollama_api.py    # Local LLM integration handling
+│   ├── 📁 ui/                  # Frontend UI components
+│   │   ├── 📄 app_window.py    # Main CustomTkinter window
+│   │   └── 📁 components/      # Reusable UI widgets
+│   │       ├── 📄 sidebar.py   # Sidebar with PDF slots and controls
+│   │       ├── 📄 chat.py      # Chat area and message bubbles
+│   │       └── 📄 pdf_slot.py  # PDF Slot UI component
+├── 📄 requirements_offline.txt
+└── 📄 README_offline.md
+```
 
 ---
 
@@ -24,14 +52,14 @@ python pdf_offline_qa.py
 
 Yeh ek **RAG (Retrieval Augmented Generation)** system hai:
 
-```
+```text
 PDF Upload
     ↓
-Text Extract (pdfplumber/pypdf)
+Text Extract (pdfplumber/pypdf) -> src/engine/pdf_parser.py
     ↓
 Smart Chunks (400 words each, overlapping)
     ↓
-Sentence-Transformers se Embeddings (vectors)
+Sentence-Transformers se Embeddings (vectors) -> src/engine/ai_engine.py
     ↓
 Sawaal poochho
     ↓
@@ -63,7 +91,7 @@ ollama pull phi3        # ~2GB — fast
 ollama serve
 
 # 4. App open karo — automatically detect kar lega!
-python pdf_offline_qa.py
+python -m src.main
 ```
 
 ---
@@ -74,11 +102,12 @@ python pdf_offline_qa.py
 |---|---|
 | **100% Offline** | Pehle model download ke baad internet nahi chahiye |
 | **No API Key** | Bilkul free, koi subscription nahi |
+| **Modular Architecture** | Clean, scalable codebase split into config, engine, and ui modules |
 | **5 PDFs** | Ek saath 5 PDFs load kar sakte ho |
 | **Semantic Search** | Keyword nahi, meaning se dhundta hai |
 | **Hindi + English** | Dono languages support |
 | **Ollama Integration** | Local LLM se smart answers (optional) |
-| **Dark Modern UI** | CustomTkinter se beautiful interface |
+| **Premium UI** | CustomTkinter with deep dark mode colors and clean aesthetics |
 
 ---
 
