@@ -3,9 +3,9 @@ import re
 from pathlib import Path
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
-from src.config.settings import TOP_K_CHUNKS
-from src.engine.pdf_parser import extract_text, make_chunks
-from src.engine.ollama_api import check_ollama, query_ollama
+from config.settings import TOP_K_CHUNKS
+from engine.pdf_parser import extract_text, make_chunks
+from engine.ollama_api import check_ollama, query_ollama
 
 class OfflineAIEngine:
     def __init__(self):

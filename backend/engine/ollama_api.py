@@ -1,6 +1,6 @@
 import requests
 from typing import Tuple, Optional, List
-from src.config.settings import OLLAMA_URL
+from config.settings import OLLAMA_URL
 
 def check_ollama() -> Tuple[bool, str]:
     """Checks if Ollama is running and finds the best available model."""

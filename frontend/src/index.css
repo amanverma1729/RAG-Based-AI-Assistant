@@ -1,18 +1,18 @@
 :root {
-  --bg-dark: #09090B;
-  --bg-card: #18181B;
-  --bg-sidebar: #0F0F13;
+  --bg-dark: #212121;
+  --bg-card: #2F2F2F;
+  --bg-sidebar: #171717;
   --accent-blue: #3B82F6;
   --accent-purple: #8B5CF6;
   --accent-green: #10B981;
   --accent-red: #EF4444;
   --accent-orange: #F59E0B;
-  --text-primary: #FAFAFA;
+  --text-primary: #ECECEC;
   --text-secondary: #A1A1AA;
-  --border-color: #27272A;
-  --user-bubble: #1E3A8A;
-  --ai-bubble: #18181B;
-  --input-bg: #18181B;
+  --border-color: #424242;
+  --user-bubble: #2F2F2F;
+  --ai-bubble: transparent;
+  --input-bg: #2F2F2F;
 }
 
 * {
@@ -38,12 +38,53 @@ body {
 
 /* Sidebar Styles */
 .sidebar {
-  width: 320px;
+  width: 260px;
   background-color: var(--bg-sidebar);
   border-right: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
-  transition: all 0.3s ease;
+  transition: transform 0.3s ease-in-out;
+  height: 100vh;
+  position: relative;
+  z-index: 50;
+}
+
+.sidebar-overlay {
+  display: none;
+}
+
+.mobile-toggle-btn {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 4px;
+}
+
+@media (max-width: 768px) {
+  .sidebar {
+    position: absolute;
+    transform: translateX(-100%);
+  }
+  .sidebar.open {
+    transform: translateX(0);
+  }
+  .sidebar-overlay.open {
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 40;
+  }
+  .mobile-toggle-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
 }
 
 .logo-container {
@@ -310,20 +351,19 @@ body {
 .message-bubble {
   padding: 16px 20px;
   border-radius: 16px;
-  font-size: 14px;
+  font-size: 15px;
   line-height: 1.6;
 }
 
 .message-wrapper.user .message-bubble {
   background-color: var(--user-bubble);
-  color: white;
+  color: var(--text-primary);
   border-bottom-right-radius: 4px;
 }
 
 .message-wrapper.ai .message-bubble {
   background-color: var(--ai-bubble);
-  border: 1px solid var(--border-color);
-  border-bottom-left-radius: 4px;
+  border: none;
 }
 
 .message-wrapper.system .message-bubble {

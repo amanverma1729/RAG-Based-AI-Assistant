@@ -1,7 +1,7 @@
 import pdfplumber
 import pypdf
 from typing import Tuple, List, Dict
-from src.config.settings import CHUNK_SIZE, CHUNK_OVERLAP
+from config.settings import CHUNK_SIZE, CHUNK_OVERLAP
 
 def extract_text(pdf_path: str) -> Tuple[List[Tuple[int, str]], int]:
     """Extracts text from a PDF file using pdfplumber, falling back to pypdf."""

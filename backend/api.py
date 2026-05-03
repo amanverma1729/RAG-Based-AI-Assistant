@@ -3,10 +3,16 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Optional
 import os
+import sys
 import shutil
 
-from src.engine.ai_engine import OfflineAIEngine
-from src.engine.ollama_api import check_ollama
+# Ensure the backend directory is in the python path regardless of where it's run from
+backend_dir = os.path.dirname(os.path.abspath(__file__))
+if backend_dir not in sys.path:
+    sys.path.insert(0, backend_dir)
+
+from engine.ai_engine import OfflineAIEngine
+from engine.ollama_api import check_ollama
 
 app = FastAPI(title="PDF Intelligence Pro API")
 
@@ -88,3 +94,7 @@ def clear_all():
     for f in os.listdir(UPLOAD_DIR):
         os.remove(os.path.join(UPLOAD_DIR, f))
     return {"message": "All PDFs cleared"}
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("api:app", host="127.0.0.1", port=8000, reload=True)

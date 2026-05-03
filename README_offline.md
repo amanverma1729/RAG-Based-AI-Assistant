@@ -1,49 +1,62 @@
 # 📄 PDF Intelligence Pro — 100% OFFLINE
 
 > Koi API Key nahi • Koi Internet nahi • Tera data tera machine pe
-> *Now featuring a professional, modular architecture and a premium Dark UI.*
+> *Now featuring a modern Client-Server Architecture and a premium ChatGPT-Style Dark UI.*
 
 ---
 
 ## 🚀 Quick Start
 
-### Step 1 — Install Dependencies
+The project is now split into two main components: a **FastAPI Backend** and a **React Frontend**.
+
+### Step 1 — Install Backend Dependencies & Run Server
+Open a terminal and navigate to the root directory:
 ```bash
 pip install -r requirements_offline.txt
+cd backend
+uvicorn api:app --reload --port 8000
 ```
+*(Pehli baar AI model download hoga — uske baad hamesha offline kaam karega!)*
 
-### Step 2 — Run the App
+### Step 2 — Install Frontend Dependencies & Run App
+Open a second terminal and navigate to the frontend directory:
 ```bash
-python -m src.main
+cd frontend
+npm install
+npm run dev
 ```
-
-**Pehli baar 80MB AI model download hoga — phir hamesha offline!**
+*(The React app will launch at `http://localhost:5173`)*
 
 ---
 
 ## 🏗️ Project Architecture
 
-The application has been modularized for scalability and easy maintenance:
+The application has been modularized into a robust client-server architecture for high scalability, separation of concerns, and easy maintenance:
 
 ```text
 📁 / (Project Root)
-├── 📁 src/                     # Source code root
-│   ├── 📄 main.py              # Application entry point
-│   ├── 📁 config/              # Configuration and styling
-│   │   ├── 📄 settings.py      # App constants (CHUNK_SIZE, MAX_PDFS, etc.)
-│   │   └── 📄 theme.py         # Premium color palettes and UI styling tokens
-│   ├── 📁 engine/              # Backend logic (AI & Data)
-│   │   ├── 📄 ai_engine.py     # Main AI orchestrator
-│   │   ├── 📄 pdf_parser.py    # PDF text extraction and chunking
-│   │   └── 📄 ollama_api.py    # Local LLM integration handling
-│   ├── 📁 ui/                  # Frontend UI components
-│   │   ├── 📄 app_window.py    # Main CustomTkinter window
-│   │   └── 📁 components/      # Reusable UI widgets
-│   │       ├── 📄 sidebar.py   # Sidebar with PDF slots and controls
-│   │       ├── 📄 chat.py      # Chat area and message bubbles
-│   │       └── 📄 pdf_slot.py  # PDF Slot UI component
-├── 📄 requirements_offline.txt
-└── 📄 README_offline.md
+├── 📁 backend/                 # FastAPI Python Backend (AI & Data)
+│   ├── 📄 api.py               # Main REST API Endpoints
+│   ├── 📁 config/              # Configuration (Settings, constants)
+│   └── 📁 engine/              # Backend logic
+│       ├── 📄 ai_engine.py     # Main AI orchestrator & Embeddings
+│       ├── 📄 pdf_parser.py    # PDF text extraction and chunking
+│       └── 📄 ollama_api.py    # Local LLM integration handling
+│
+├── 📁 frontend/                # React (Vite) Frontend (UI)
+│   ├── 📄 package.json         # Node dependencies
+│   ├── 📄 vite.config.js       # Vite configuration
+│   └── 📁 src/
+│       ├── 📄 App.jsx          # Main App state and routing
+│       ├── 📄 index.css        # Premium ChatGPT-style dark theme & styles
+│       └── 📁 components/      # Reusable React UI widgets
+│           ├── 📄 Sidebar.jsx  # Responsive Sidebar with PDF slots
+│           ├── 📄 ChatArea.jsx # Chat area, Markdown rendering & Copy button
+│           ├── 📄 InputBar.jsx # User input and sending logic
+│           └── 📄 TypeWriter.jsx # Real-time streaming text animation
+│
+├── 📄 requirements_offline.txt # Python backend dependencies
+└── 📄 README_offline.md        # You are here
 ```
 
 ---
@@ -53,21 +66,23 @@ The application has been modularized for scalability and easy maintenance:
 Yeh ek **RAG (Retrieval Augmented Generation)** system hai:
 
 ```text
-PDF Upload
+[Frontend] Upload PDF -> API /upload
     ↓
-Text Extract (pdfplumber/pypdf) -> src/engine/pdf_parser.py
+[Backend] Text Extract (pdfplumber/pypdf)
     ↓
-Smart Chunks (400 words each, overlapping)
+[Backend] Smart Chunks (400 words each, overlapping)
     ↓
-Sentence-Transformers se Embeddings (vectors) -> src/engine/ai_engine.py
+[Backend] Sentence-Transformers se Embeddings (vectors)
     ↓
-Sawaal poochho
+[Frontend] Ask Question -> API /chat
     ↓
-Sawaal bhi embed hota hai
+[Backend] Sawaal bhi embed hota hai
     ↓
-Cosine Similarity → Top relevant chunks
+[Backend] Cosine Similarity → Top relevant chunks
     ↓
-Answer (Ollama LLM  OR  Smart Extraction)
+[Backend] Answer (Ollama LLM  OR  Smart Extraction)
+    ↓
+[Frontend] Typewriter Animation & Markdown Rendering
 ```
 
 ---
@@ -89,10 +104,9 @@ ollama pull phi3        # ~2GB — fast
 
 # 3. Ollama chalao (background mein)
 ollama serve
-
-# 4. App open karo — automatically detect kar lega!
-python -m src.main
 ```
+
+*The application will automatically detect if Ollama is running and use it!*
 
 ---
 
@@ -102,18 +116,19 @@ python -m src.main
 |---|---|
 | **100% Offline** | Pehle model download ke baad internet nahi chahiye |
 | **No API Key** | Bilkul free, koi subscription nahi |
-| **Modular Architecture** | Clean, scalable codebase split into config, engine, and ui modules |
+| **Client-Server Architecture** | Clean, scalable React frontend + FastAPI backend |
 | **5 PDFs** | Ek saath 5 PDFs load kar sakte ho |
 | **Semantic Search** | Keyword nahi, meaning se dhundta hai |
 | **Hindi + English** | Dono languages support |
 | **Ollama Integration** | Local LLM se smart answers (optional) |
-| **Premium UI** | CustomTkinter with deep dark mode colors and clean aesthetics |
+| **Premium ChatGPT UI** | Modern neutral dark mode, responsive sidebar, streaming typing animations, and copy-to-clipboard |
 
 ---
 
 ## 📋 Requirements
 
 - **Python** 3.9+
+- **Node.js** 18+ (for running the React frontend)
 - **RAM** 4GB+ recommended
 - **Disk** ~500MB (model cache ke liye)
 - **Ollama** (optional, better answers ke liye)

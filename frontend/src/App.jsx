@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
-import { Send, FileText, Upload, X, Trash2, RefreshCw, MessageSquare } from 'lucide-react'
-import ReactMarkdown from 'react-markdown'
+import Sidebar from './components/Sidebar'
+import ChatArea from './components/ChatArea'
+import InputBar from './components/InputBar'
 import './index.css'
 
 const API_BASE = 'http://localhost:8000'
@@ -20,6 +21,7 @@ function App() {
   const chatEndRef = useRef(null)
   const fileInputRef = useRef(null)
   const [uploadSlot, setUploadSlot] = useState(null)
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false)
 
   const scrollToBottom = () => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -144,7 +146,7 @@ function App() {
       const data = await res.json()
       
       if (res.ok) {
-        setMessages(prev => [...prev, { role: 'ai', content: data.answer }])
+        setMessages(prev => [...prev, { role: 'ai', content: data.answer, isTyping: true }])
       } else {
         setMessages(prev => [...prev, { role: 'ai', content: `❌ Error: ${data.detail}` }])
       }
@@ -155,162 +157,47 @@ function App() {
     }
   }
 
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault()
-      sendMessage()
-    }
-  }
-
   return (
     <div id="root">
       {/* Hidden File Input */}
       <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".pdf" className="hidden" />
+      {/* Sidebar Overlay */}
+      <div 
+        className={`sidebar-overlay ${isSidebarOpen ? 'open' : ''}`}
+        onClick={() => setIsSidebarOpen(false)}
+      ></div>
 
-      {/* Sidebar */}
-      <div className="sidebar">
-        <div className="logo-container">
-          <FileText className="logo-icon" style={{ color: "var(--accent-blue)" }} />
-          <div className="logo-text">
-            <h1>PDF Intelligence</h1>
-            <p>100% OFFLINE • No API Key</p>
-            <div className={`ollama-status ${status.ollama_available ? 'active' : ''}`}>
-              {status.ollama_available ? `🦙 Ollama: ${status.ollama_model}` : '🔌 Ollama: Not found'}
-            </div>
-          </div>
-        </div>
+      <Sidebar 
+        status={status}
+        pdfSlots={pdfSlots}
+        activeSlots={activeSlots}
+        onUploadClick={handleUploadClick}
+        onRemovePdf={removePdf}
+        onClearAll={clearAllPdfs}
+        onRecheckStatus={checkStatus}
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
+      />
 
-        <div className="status-bar" style={{ color: status.model_loaded ? 'var(--accent-green)' : 'var(--accent-orange)' }}>
-          {status.model_loaded ? '✅ AI Engine Ready!' : '🔄 Loading AI model...'}
-        </div>
-
-        <div className="pdf-slots-header">
-          <h2>📁 Load PDFs</h2>
-          <span>max 5</span>
-        </div>
-
-        <div className="slots-container">
-          {pdfSlots.map((slot, index) => (
-            <div key={index} className={`pdf-slot ${slot && !slot.loading ? 'active' : ''}`}>
-              <div className="slot-badge">{index + 1}</div>
-              <div className="slot-info">
-                {slot ? (
-                  <>
-                    <div className="slot-name">{slot.loading ? '⏳ Processing...' : `✓ ${slot.filename}`}</div>
-                    <div className="slot-desc">
-                      {slot.loading ? 'Extracting & embedding text...' : `${slot.pages} pages • ${slot.total_chunks} chunks`}
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <div className="slot-name" style={{ color: 'var(--text-secondary)' }}>Slot {index + 1} — Empty</div>
-                    <div className="slot-desc">+ button to upload</div>
-                  </>
-                )}
-              </div>
-              <div className="slot-actions">
-                {!slot && (
-                  <button onClick={() => handleUploadClick(index)} title="Upload PDF">
-                    <Upload size={16} style={{ color: `var(--accent-blue)` }} />
-                  </button>
-                )}
-                {slot && !slot.loading && (
-                  <button className="remove" onClick={() => removePdf(index)} title="Remove PDF">
-                    <X size={16} />
-                  </button>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <div className="sidebar-footer">
-          <div style={{ fontSize: '11px', color: 'var(--text-secondary)', textAlign: 'center' }}>
-            {activeSlots.length} / 5 PDFs loaded
-          </div>
-          <button className="footer-btn danger" onClick={clearAllPdfs}>
-            <Trash2 size={14} style={{ display: 'inline', marginRight: '6px', verticalAlign: '-2px' }}/>
-            Clear All PDFs
-          </button>
-          <button className="footer-btn" onClick={checkStatus}>
-            <RefreshCw size={14} style={{ display: 'inline', marginRight: '6px', verticalAlign: '-2px' }}/>
-            Recheck Ollama
-          </button>
-        </div>
-      </div>
-
-      {/* Main Chat Area */}
       <div className="main-area">
-        <div className="topbar">
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <MessageSquare size={18} style={{ color: 'var(--accent-purple)' }}/>
-            <h2>AI Chat — Offline Mode</h2>
-          </div>
-          <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-            <div style={{ 
-              backgroundColor: 'var(--bg-dark)', 
-              padding: '6px 14px', 
-              borderRadius: '20px', 
-              fontSize: '11px', 
-              color: isThinking ? 'var(--accent-orange)' : 'var(--accent-green)' 
-            }}>
-              ⬤ {isThinking ? 'Thinking...' : 'Ready'}
-            </div>
-            <button 
-              className="footer-btn" 
-              style={{ padding: '6px 12px', background: 'transparent' }}
-              onClick={() => setMessages(messages.slice(0, 1))}
-            >
-              Clear Chat
-            </button>
-          </div>
-        </div>
-
-        <div className="chat-container">
-          {messages.map((msg, idx) => (
-            <div key={idx} className={`message-wrapper ${msg.role}`}>
-              <div className={`sender-label ${msg.role}`}>
-                {msg.role === 'user' ? '👤 You' : msg.role === 'ai' ? '🤖 PDF AI' : ''}
-              </div>
-              <div className="message-bubble">
-                <ReactMarkdown>{msg.content}</ReactMarkdown>
-              </div>
-            </div>
-          ))}
-          
-          {isThinking && (
-            <div className="message-wrapper ai">
-              <div className="sender-label ai">🤖 PDF AI</div>
-              <div className="message-bubble" style={{ backgroundColor: 'var(--thinking)', borderColor: 'var(--accent-purple)' }}>
-                <div className="typing-indicator">
-                  <div className="typing-dot"></div>
-                  <div className="typing-dot"></div>
-                  <div className="typing-dot"></div>
-                </div>
-              </div>
-            </div>
-          )}
-          <div ref={chatEndRef} />
-        </div>
-
-        <div className="input-area">
-          <div className="input-container">
-            <textarea
-              className="input-box"
-              placeholder="Type your question here... (Hindi or English)"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              disabled={isThinking}
-            />
-            <button className="send-btn" onClick={sendMessage} disabled={!input.trim() || isThinking}>
-              <Send size={18} />
-            </button>
-          </div>
-          <div style={{ fontSize: '10px', color: 'var(--text-secondary)', textAlign: 'center', marginTop: '10px' }}>
-            Enter = Send • Shift+Enter = New line • No internet needed!
-          </div>
-        </div>
+        <ChatArea 
+          messages={messages}
+          isThinking={isThinking}
+          chatEndRef={chatEndRef}
+          onClearChat={() => setMessages(messages.slice(0, 1))}
+          onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
+          onTypingComplete={(idx) => setMessages(prev => {
+            const newMsgs = [...prev];
+            if(newMsgs[idx]) newMsgs[idx].isTyping = false;
+            return newMsgs;
+          })}
+        />
+        <InputBar 
+          input={input}
+          setInput={setInput}
+          isThinking={isThinking}
+          onSendMessage={sendMessage}
+        />
       </div>
     </div>
   )
