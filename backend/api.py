@@ -46,13 +46,16 @@ def get_status():
         "ollama_model": ollama_name if "No models" not in ollama_name else None
     }
 
+from fastapi import BackgroundTasks
+
 @app.post("/load_model")
-def load_model():
-    """Load the sentence-transformer model into memory."""
-    success, msg = engine.load_model()
-    if not success:
-        raise HTTPException(status_code=500, detail=msg)
-    return {"message": msg}
+def load_model(background_tasks: BackgroundTasks):
+    """Load the sentence-transformer model into memory in the background."""
+    if engine.model is not None:
+        return {"message": "Model already loaded"}
+    
+    background_tasks.add_task(engine.load_model)
+    return {"message": "Model is loading in the background..."}
 
 @app.post("/upload")
 async def upload_pdf(slot_index: int = Form(...), file: UploadFile = File(...)):

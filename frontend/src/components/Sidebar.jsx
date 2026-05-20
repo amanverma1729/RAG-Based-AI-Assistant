@@ -16,8 +16,8 @@ export default function Sidebar({
       <div className="logo-container">
         <FileText className="logo-icon" style={{ color: "var(--accent-blue)" }} />
         <div className="logo-text" style={{ flex: 1 }}>
-          <h1>PDF Intelligence</h1>
-          <p>100% OFFLINE • No API Key</p>
+          <h1>RAG AI Assistant</h1>
+          <p>Document Intelligence</p>
           <div className={`ollama-status ${status.ollama_available ? 'active' : ''}`}>
             {status.ollama_available ? `🦙 Ollama: ${status.ollama_model}` : '🔌 Ollama: Not found'}
           </div>

@@ -10,14 +10,14 @@ function App() {
   const [messages, setMessages] = useState([
     {
       role: 'system',
-      content: '🚀 **PDF Intelligence Pro — 100% OFFLINE**\n\n✅ No API Key required\n✅ No Internet required\n✅ Your data stays on your machine\n\n**HOW IT WORKS:**\n1. AI model downloads once (80MB) — then completely offline\n2. Upload 1-5 PDFs from the sidebar\n3. Ask questions — AI finds the relevant content'
+      content: '🚀 **RAG Based AI Assistant**\n\n**How it works:**\n1. Upload up to 5 PDFs from the sidebar.\n2. Ask questions based on the uploaded documents.\n3. The AI retrieves relevant context and answers your queries.'
     }
   ])
   const [input, setInput] = useState('')
   const [isThinking, setIsThinking] = useState(false)
   const [status, setStatus] = useState({ model_loaded: false, ollama_available: false, ollama_model: null })
   const [pdfSlots, setPdfSlots] = useState(Array(5).fill(null))
-  
+
   const chatEndRef = useRef(null)
   const fileInputRef = useRef(null)
   const [uploadSlot, setUploadSlot] = useState(null)
@@ -33,12 +33,21 @@ function App() {
 
   useEffect(() => {
     checkStatus()
-    // Load model on startup
+    // Load model on startup (it's non-blocking now on backend)
     fetch(`${API_BASE}/load_model`, { method: 'POST' })
-      .then(res => res.json())
-      .then(() => checkStatus())
-      .catch(err => console.error("Could not load model", err))
+      .catch(err => console.error("Could not trigger model load", err))
   }, [])
+
+  // Poll status while model is not loaded
+  useEffect(() => {
+    let interval;
+    if (!status.model_loaded) {
+      interval = setInterval(() => {
+        checkStatus();
+      }, 2000); // Check every 2 seconds
+    }
+    return () => clearInterval(interval);
+  }, [status.model_loaded]);
 
   const checkStatus = async () => {
     try {
@@ -58,7 +67,7 @@ function App() {
   const handleFileChange = async (e) => {
     const file = e.target.files[0]
     if (!file || uploadSlot === null) return
-    
+
     // Optimistic UI update
     const newSlots = [...pdfSlots]
     newSlots[uploadSlot] = { loading: true, filename: file.name }
@@ -91,7 +100,7 @@ function App() {
       setPdfSlots([...newSlots])
       alert(`Upload error: ${err.message}`)
     }
-    
+
     // Reset file input
     e.target.value = ''
     setUploadSlot(null)
@@ -123,7 +132,7 @@ function App() {
 
   const sendMessage = async () => {
     if (!input.trim() || isThinking) return
-    
+
     if (activeSlots.length === 0) {
       alert("Please upload at least one PDF first!")
       return
@@ -144,7 +153,7 @@ function App() {
         })
       })
       const data = await res.json()
-      
+
       if (res.ok) {
         setMessages(prev => [...prev, { role: 'ai', content: data.answer, isTyping: true }])
       } else {
@@ -162,12 +171,12 @@ function App() {
       {/* Hidden File Input */}
       <input type="file" ref={fileInputRef} onChange={handleFileChange} accept=".pdf" className="hidden" />
       {/* Sidebar Overlay */}
-      <div 
+      <div
         className={`sidebar-overlay ${isSidebarOpen ? 'open' : ''}`}
         onClick={() => setIsSidebarOpen(false)}
       ></div>
 
-      <Sidebar 
+      <Sidebar
         status={status}
         pdfSlots={pdfSlots}
         activeSlots={activeSlots}
@@ -180,7 +189,7 @@ function App() {
       />
 
       <div className="main-area">
-        <ChatArea 
+        <ChatArea
           messages={messages}
           isThinking={isThinking}
           chatEndRef={chatEndRef}
@@ -188,11 +197,11 @@ function App() {
           onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
           onTypingComplete={(idx) => setMessages(prev => {
             const newMsgs = [...prev];
-            if(newMsgs[idx]) newMsgs[idx].isTyping = false;
+            if (newMsgs[idx]) newMsgs[idx].isTyping = false;
             return newMsgs;
           })}
         />
-        <InputBar 
+        <InputBar
           input={input}
           setInput={setInput}
           isThinking={isThinking}
