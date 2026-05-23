@@ -13,9 +13,7 @@ The project is now split into two main components: a **FastAPI Backend** and a *
 Open a terminal and navigate to the root directory:
 ```bash
 pip install -r requirements_offline.txt
-cd backend
-uvicorn api:app --reload --port 8000
-```
+cd backend```
 *(Pehli baar AI model download hoga — uske baad hamesha offline kaam karega!)*
 
 ### Step 2 — Install Frontend Dependencies & Run App
