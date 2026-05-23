@@ -14,7 +14,7 @@ export default function Sidebar({
   return (
     <div className={`sidebar ${isOpen ? 'open' : ''}`}>
       <div className="logo-container">
-        <FileText className="logo-icon" style={{ color: "var(--accent-blue)" }} />
+        <FileText className="logo-icon" style={{ color: "var(--accent-cyan)" }} />
         <div className="logo-text" style={{ flex: 1 }}>
           <h1>RAG AI Assistant</h1>
           <p>Document Intelligence</p>
@@ -61,7 +61,7 @@ export default function Sidebar({
             <div className="slot-actions">
               {!slot && (
                 <button onClick={() => onUploadClick(index)} title="Upload PDF">
-                  <Upload size={16} style={{ color: `var(--accent-blue)` }} />
+                  <Upload size={16} style={{ color: `var(--accent-cyan)` }} />
                 </button>
               )}
               {slot && !slot.loading && (
@@ -75,7 +75,7 @@ export default function Sidebar({
       </div>
 
       <div className="sidebar-footer">
-        <div style={{ fontSize: '11px', color: 'var(--text-secondary)', textAlign: 'center' }}>
+        <div style={{ fontSize: '12px', color: 'var(--text-secondary)', textAlign: 'center', fontWeight: '500' }}>
           {activeSlots.length} / 5 PDFs loaded
         </div>
         <button className="footer-btn danger" onClick={onClearAll}>

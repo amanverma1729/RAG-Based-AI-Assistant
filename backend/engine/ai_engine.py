@@ -95,19 +95,12 @@ class OfflineAIEngine:
             all_chunks.sort(key=lambda x: x["score"], reverse=True)
             top_chunks = all_chunks[:TOP_K_CHUNKS]
 
-            # 🔥 Detect Ollama
-            if not self.ollama_model:
-                ok, name = check_ollama()
-                if ok and "No models" not in name:
-                    self.ollama_model = name
-
-            # 🤖 OLLAMA RESPONSE WITH LANGUAGE CONTROL
-            if self.ollama_model:
-                from engine.ollama_api import query_ollama
-                
-                ollama_ans = query_ollama(self.ollama_model, question, top_chunks)
-                if ollama_ans:
-                    return ollama_ans
+            # 🤖 DYNAMIC LLM RESPONSE (Gemini or Ollama)
+            from engine.llm_service import generate_answer
+            
+            llm_ans = generate_answer(question, top_chunks)
+            if llm_ans:
+                return llm_ans
 
             # 🔁 Fallback
             return self._build_extractive_answer(question, top_chunks)

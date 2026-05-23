@@ -5,6 +5,15 @@ from typing import List, Optional
 import os
 import sys
 import shutil
+import logging
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
+
+# Setup logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Ensure the backend directory is in the python path regardless of where it's run from
 backend_dir = os.path.dirname(os.path.abspath(__file__))
@@ -16,10 +25,13 @@ from engine.ollama_api import check_ollama
 
 app = FastAPI(title="PDF Intelligence Pro API")
 
-# Setup CORS to allow React frontend to connect
+# Setup CORS to allow React frontend to connect securely in production
+allowed_origins_str = os.environ.get("ALLOWED_ORIGINS", "http://localhost:5173")
+allowed_origins = [origin.strip() for origin in allowed_origins_str.split(",")]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Adjust this in production
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -35,13 +47,23 @@ class ChatRequest(BaseModel):
     question: str
     active_slots: List[int]
 
+@app.get("/health")
+def health_check():
+    """Basic health check endpoint for production."""
+    return {"status": "healthy"}
+
 @app.get("/status")
 def get_status():
     """Check AI model and Ollama status."""
     model_ready = engine.model is not None
     ollama_ok, ollama_name = check_ollama()
+    provider = os.environ.get("MODEL_PROVIDER", "ollama")
+    
+    logger.info(f"Provider checking: {provider}")
+    
     return {
         "model_loaded": model_ready,
+        "provider": provider,
         "ollama_available": ollama_ok,
         "ollama_model": ollama_name if "No models" not in ollama_name else None
     }
