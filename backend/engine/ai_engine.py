@@ -6,6 +6,7 @@ from sklearn.metrics.pairwise import cosine_similarity
 from config.settings import TOP_K_CHUNKS
 from engine.pdf_parser import extract_text, make_chunks
 from engine.ollama_api import check_ollama
+import google.generativeai as genai
 
 class OfflineAIEngine:
     def __init__(self):
@@ -30,16 +31,11 @@ class OfflineAIEngine:
             text, pages = extract_text(pdf_path)
             chunks = make_chunks(text)
 
-            if self.model is None:
-                success, msg = self.load_model()
-                if not success or self.model is None:
-                    return False, f"AI Model failed to load: {msg}"
+            chunk_texts = [c["text"] for c in chunks]
+            if not chunk_texts:
+                return False, "No readable text found in PDF to index."
 
-            embeddings = self.model.encode(
-                [c["text"] for c in chunks],
-                show_progress_bar=False,
-                batch_size=32
-            )
+            embeddings = self._get_embeddings(chunk_texts, task_type="retrieval_document")
 
             self.pdf_data[slot_index] = {
                 "path": pdf_path,
@@ -63,12 +59,7 @@ class OfflineAIEngine:
 
     def answer(self, question: str, active_slots: list[int]):
         try:
-            if self.model is None:
-                success, msg = self.load_model()
-                if not success or self.model is None:
-                    return "❌ AI model failed to load. Please wait."
-
-            q_embedding = self.model.encode([question])[0]
+            q_embedding = self._get_embeddings([question], task_type="retrieval_query")[0]
 
             all_chunks = []
             for slot in active_slots:
@@ -149,3 +140,24 @@ class OfflineAIEngine:
             self.pdf_data.pop(str(slot_index), None)
         if int(slot_index) in self.pdf_data:
             self.pdf_data.pop(int(slot_index), None)
+
+    def _get_embeddings(self, texts: list[str], task_type: str = "retrieval_document"):
+        provider = os.environ.get("MODEL_PROVIDER", "ollama").lower()
+        if provider == "gemini":
+            api_key = os.environ.get("GEMINI_API_KEY")
+            if not api_key:
+                raise Exception("GEMINI_API_KEY is not set. Cannot generate embeddings.")
+            genai.configure(api_key=api_key)
+            result = genai.embed_content(
+                model="models/text-embedding-004",
+                content=texts,
+                task_type=task_type
+            )
+            return np.array(result['embedding'])
+        else:
+            if self.model is None:
+                success, msg = self.load_model()
+                if not success or self.model is None:
+                    raise Exception(f"Failed to load local AI Model: {msg}")
+            
+            return self.model.encode(texts, show_progress_bar=False, batch_size=32)
