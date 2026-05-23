@@ -31,7 +31,9 @@ class OfflineAIEngine:
             chunks = make_chunks(text)
 
             if self.model is None:
-                return False, "AI Model not loaded yet!"
+                success, msg = self.load_model()
+                if not success or self.model is None:
+                    return False, f"AI Model failed to load: {msg}"
 
             embeddings = self.model.encode(
                 [c["text"] for c in chunks],
@@ -62,7 +64,9 @@ class OfflineAIEngine:
     def answer(self, question: str, active_slots: list[int]):
         try:
             if self.model is None:
-                return "❌ AI model not loaded. Please wait."
+                success, msg = self.load_model()
+                if not success or self.model is None:
+                    return "❌ AI model failed to load. Please wait."
 
             q_embedding = self.model.encode([question])[0]
 
