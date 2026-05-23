@@ -33,11 +33,13 @@ export default function ChatArea({ messages, isThinking, chatEndRef, onClearChat
         </div>
         <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
           <div style={{
-            backgroundColor: 'var(--bg-dark)',
+            background: 'rgba(255, 255, 255, 0.05)',
+            border: '1px solid var(--border-color)',
             padding: '6px 14px',
             borderRadius: '20px',
-            fontSize: '11px',
-            color: isThinking ? 'var(--accent-orange)' : 'var(--accent-green)'
+            fontSize: '12px',
+            color: isThinking ? 'var(--accent-orange)' : 'var(--accent-green)',
+            backdropFilter: 'blur(4px)'
           }}>
             ⬤ {isThinking ? 'Thinking...' : 'Ready'}
           </div>
@@ -64,11 +66,12 @@ export default function ChatArea({ messages, isThinking, chatEndRef, onClearChat
                 {/* 🌐 Language badge (NEW) */}
                 {msg.role === 'ai' && (
                   <div style={{
-                    fontSize: '10px',
+                    fontSize: '11px',
                     color: 'var(--text-secondary)',
-                    background: 'var(--bg-dark)',
-                    padding: '2px 8px',
-                    borderRadius: '10px'
+                    background: 'rgba(255, 255, 255, 0.05)',
+                    border: '1px solid var(--border-color)',
+                    padding: '2px 10px',
+                    borderRadius: '12px'
                   }}>
                     🌐 {lang}
                   </div>
